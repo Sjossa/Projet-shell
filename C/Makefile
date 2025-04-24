@@ -4,8 +4,10 @@ NAME = factorielle
 
 all: $(NAME)
 
+
 $(NAME): main.c header.h
 	$(CC) $(CFLAGS) -o $(NAME) main.c
+
 
 clean:
 	rm -f $(NAME)
