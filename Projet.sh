@@ -128,17 +128,34 @@ check_ligne() {
 }
 
 # chat
+# CHECK INDENTATION DEBUG VERSION
 check_indentation() {
+    echo "Checking indentation..."
     if grep -q -E "^[ ]{1}[^ ]|^[ ]{3}[^ ]" main.c; then
         note=$((note - 2))
-        echo "Mauvaise indentation dans main.c."
+        echo "DEDUCTION: Mauvaise indentation dans main.c."
     fi
 
-    if grep -q -E "[^{] *{[^ ]|[^ ] *{" main.c; then
+    echo "Checking brace placement..."
+    if grep -q -E "[a-zA-Z0-9)}] *{" main.c; then
         note=$((note - 2))
-        echo "Les accolades ne sont pas sur une ligne séparée dans main.c."
+        echo "DEDUCTION: Les accolades ne sont pas sur une ligne séparée dans main.c."
+        # Show examples of problematic lines
+        grep -n -E "[a-zA-Z0-9)}] *{" main.c
     fi
 }
+# WORKING CHECK INDENTATION
+# check_indentation() {
+#     if grep -q -E "^[ ]{1}[^ ]|^[ ]{3}[^ ]" main.c; then
+#         note=$((note - 2))
+#         echo "Mauvaise indentation dans main.c."
+#     fi
+
+#     if grep -q -E "[a-zA-Z0-9)}] *{" main.c; then
+#         note=$((note - 2))
+#         echo "Les accolades ne sont pas sur une ligne séparée dans main.c."
+#     fi
+# }
 
 check_make_clean() {
     make clean > /dev/null 2>&1
@@ -148,21 +165,41 @@ check_make_clean() {
     fi
 }
 
+# CHECK NO ARGUMENT MESSAGE DEBUG VERSION
 check_no_argument_message() {
-    result=$(./factorielle 2>&1)
+    echo "Checking no argument message..."
+    original_result=$(./factorielle 2>&1)
+    result=$(echo "$original_result" | tr -d '\n')
+    echo "Got: '$original_result'"
+    echo "After stripping newline: '$result'"
+    echo "Expected: 'Erreur: Mauvais nombre de parametres'"
+    
     if [ "$result" = "Erreur: Mauvais nombre de parametres" ]; then
         note=$((note + 4))
+        echo "SUCCESS: Message for no argument is correct."
     else
-        echo "Message incorrect pour aucun argument fourni."
+        echo "FAILURE: Message incorrect pour aucun argument fourni."
     fi
 }
+# check_no_argument_message() {
+#     # Strip the newline from the result
+#     result=$(./factorielle 2>&1 | tr -d '\n')
+#     if [ "$result" = "Erreur: Mauvais nombre de parametres" ]; then
+#         note=$((note + 4))
+#     else
+#         echo "Message incorrect pour aucun argument fourni."
+#         echo "Got: '$result'"
+#     fi
+# }
 
 check_negative_argument_message() {
-    result=$(./factorielle -5 2>&1)
+    # Strip the newline from the result
+    result=$(./factorielle -5 2>&1 | tr -d '\n')
     if [ "$result" = "Erreur: nombre negatif" ]; then
         note=$((note + 4))
     else
         echo "Message incorrect pour un argument négatif."
+        echo "Got: '$result'"
     fi
 }
 
