@@ -1,32 +1,60 @@
-#!/bin/bash
-
-# Définition du dossier et de la note initiale
 Name_dossier="./C"
 note=0
+output_csv="result.csv"
 
-# Fonction de correction principale
-lancer_correction() {
-    if [ ! -d "$Name_dossier" ]; then
-        echo "Le dossier '$Name_dossier' n'existe pas ou est inaccessible."
-        return
-    fi
-
-    cd "$Name_dossier" || exit
-
-    if [ ! -f "Makefile" ]; then
-        return
-    fi
-
-    check_compilation
-    echo "Note finale : $note/20"
+initialize_csv() {
+    echo "Name,First Name,Grade" > "$output_csv"
 }
 
-# Vérification de la compilation
+lancer_correction() {
+    local folder="$1"
+
+    if [ ! -d "$folder" ]; then
+        echo "Le dossier '$folder' n'existe pas ou est inaccessible."
+        return
+    fi
+
+    initialize_csv
+
+    if [ -f "$folder/Makefile" ]; then
+        process_student "$folder"
+    else
+        for student_folder in "$folder"/*; do
+            if [ -d "$student_folder" ]; then
+                process_student "$student_folder"
+            fi
+        done
+    fi
+}
+
+process_student() {
+    local student_folder="$1"
+    local student_name="Unknown"
+    local student_first_name="Unknown"
+
+    if [ -f "$student_folder/readme.txt" ]; then
+        student_name=$(head -n 1 "$student_folder/readme.txt" | awk '{print $1}')
+        student_first_name=$(head -n 1 "$student_folder/readme.txt" | awk '{print $2}')
+    fi
+
+    note=0
+
+    cd "$student_folder" || return
+    if [ -f "Makefile" ]; then
+        check_compilation
+    else
+        echo "Makefile manquant pour $student_name $student_first_name"
+    fi
+    cd - > /dev/null || return
+
+    echo "$student_name,$student_first_name,$note" >> "$output_csv"
+}
+
 check_compilation() {
     make > /dev/null 2>&1
     if [ -f "factorielle" ]; then
+        echo "Compilation réussie."
         note=$((note + 2))
-
         check_signature
         check_ligne
         check_execution
@@ -34,28 +62,28 @@ check_compilation() {
         check_negative_argument_message
         check_indentation
     else
-        echo "❌ La compilation a échoué."
-        return
+        echo "La compilation a échoué."
     fi
 }
 
-# Vérification de l'exécution du programme
 check_execution() {
     execution_1() {
-        result=$(./factorielle 5)
+        result=$(./factorielle 5 2>&1)
+        echo "Output for input 5: $result"
         if [ "$result" -eq 120 ]; then
             note=$((note + 5))
         else
-            echo "❌ Résultat incorrect pour input 5"
+            echo "Résultat incorrect pour input 5"
         fi
     }
 
     execution_2() {
-        result=$(./factorielle 0)
+        result=$(./factorielle 0 2>&1)
+        echo "Output for input 0: $result"
         if [ "$result" -eq 1 ]; then
             note=$((note + 3))
         else
-            echo "❌ Résultat incorrect pour input 0"
+            echo "Résultat incorrect pour input 0"
         fi
     }
 
@@ -63,64 +91,58 @@ check_execution() {
     execution_2
 }
 
-# Vérification de la signature de la fonction
 check_signature() {
     if grep -Eq "int +factorielle *\( *int +number *\)" main.c; then
         note=$((note + 2))
     else
-        echo "❌ Signature de la fonction incorrecte."
+        echo "Signature de la fonction incorrecte."
     fi
 }
 
-# Vérification des lignes trop longues
 check_ligne() {
     if grep -Eq '.{81,}' main.c; then
         note=$((note - 2))
-        echo "❌ Lignes trop longues dans main.c."
+        echo "Lignes trop longues dans main.c."
     fi
 
     if grep -Eq '.{81,}' header.h; then
         note=$((note - 2))
-        echo "❌ Lignes trop longues dans header.h."
+        echo "Lignes trop longues dans header.h."
     fi
 }
 
-# Vérification des indentations
 check_indentation() {
-    if [ -f "main.c" ]; then
-        # Vérifier l'indentation (doit être un multiple de 2 espaces)
-        if grep -q -E "^[ ]{2,}[^ ]" main.c; then
-            note=$((note - 2))
-            echo "❌ Mauvaise indentation dans main.c."
-        fi
+    if grep -q -E "^[ ]{1}[^ ]|^[ ]{3,}[^ ]" main.c; then
+        note=$((note - 2))
+        echo "Mauvaise indentation dans main.c."
+    fi
 
-        # Vérifier que les accolades sont sur leur propre ligne
-        if grep -q -E "[^ \t{][ \t]*{" main.c; then
-            note=$((note - 2))
-            echo "❌ Les accolades ne sont pas sur une ligne séparée dans main.c."
-        fi
+    if grep -q -E "[^ \t]{[^ \t]" main.c; then
+        note=$((note - 2))
+        echo "Les accolades ne sont pas sur une ligne séparée dans main.c."
     fi
 }
 
-# Vérification du message d'erreur pour aucun argument
 check_no_argument_message() {
     result=$(./factorielle 2>&1)
     if [ "$result" = "Erreur: Mauvais nombre de parametres" ]; then
         note=$((note + 4))
     else
-        echo "❌ Message incorrect pour aucun argument fourni."
+        echo "Message incorrect pour aucun argument fourni."
     fi
 }
 
-# Vérification du message d'erreur pour un argument négatif
 check_negative_argument_message() {
     result=$(./factorielle -5 2>&1)
     if [ "$result" = "Erreur: nombre negatif" ]; then
         note=$((note + 4))
     else
-        echo "❌ Message incorrect pour un argument négatif."
+        echo "Message incorrect pour un argument négatif."
     fi
 }
 
-# Lancer la correction
-lancer_correction
+if [ $# -eq 1 ]; then
+    lancer_correction "$1"
+else
+    echo "Usage: $0 <dossier>"
+fi
