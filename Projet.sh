@@ -3,7 +3,9 @@ note=0
 output_csv="result.csv"
 
 initialize_csv() {
-    echo "Name,First Name,Grade" > "$output_csv"
+    if [ ! -f "$output_csv" ]; then
+        touch "$output_csv"
+    fi
 }
 
 lancer_correction() {
@@ -33,8 +35,13 @@ process_student() {
     local student_first_name="Unknown"
 
     if [ -f "$student_folder/readme.txt" ]; then
+        echo "Found readme.txt at: $student_folder/readme.txt"
+        echo "Content: $(cat "$student_folder/readme.txt")"
         student_name=$(head -n 1 "$student_folder/readme.txt" | awk '{print $1}')
         student_first_name=$(head -n 1 "$student_folder/readme.txt" | awk '{print $2}')
+        echo "Extracted name: $student_name, first name: $student_first_name"
+    else
+        echo "Warning: readme.txt not found in $student_folder"
     fi
 
     note=0
@@ -42,12 +49,21 @@ process_student() {
     cd "$student_folder" || return
     if [ -f "Makefile" ]; then
         check_compilation
+        check_header
+        check_make_clean
     else
         echo "Makefile manquant pour $student_name $student_first_name"
     fi
     cd - > /dev/null || return
 
-    echo "$student_name,$student_first_name,$note" >> "$output_csv"
+    echo "$student_name/$student_first_name/$note" >> "$output_csv"
+}
+
+check_header() {
+    if [ ! -f "header.h" ]; then
+        note=$((note - 2))
+        echo "Fichier header.h manquant."
+    fi
 }
 
 check_compilation() {
@@ -111,15 +127,24 @@ check_ligne() {
     fi
 }
 
+# chat
 check_indentation() {
-    if grep -q -E "^[ ]{1}[^ ]|^[ ]{3,}[^ ]" main.c; then
+    if grep -q -E "^[ ]{1}[^ ]|^[ ]{3}[^ ]" main.c; then
         note=$((note - 2))
         echo "Mauvaise indentation dans main.c."
     fi
 
-    if grep -q -E "[^ \t]{[^ \t]" main.c; then
+    if grep -q -E "[^{] *{[^ ]|[^ ] *{" main.c; then
         note=$((note - 2))
         echo "Les accolades ne sont pas sur une ligne séparée dans main.c."
+    fi
+}
+
+check_make_clean() {
+    make clean > /dev/null 2>&1
+    if [ -f "factorielle" ]; then
+        note=$((note - 2))
+        echo "La règle make clean ne fonctionne pas."
     fi
 }
 
