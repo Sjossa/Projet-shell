@@ -30,7 +30,7 @@ lancer_correction() {
     if [ -f "$folder/Makefile" ]; then
         process_student "$folder"
     else
-        echo "Aucun Makefile trouvé dans $folder"
+        echo "Aucun Makefile trouvÃ© dans $folder"
     fi
 }
 
@@ -52,7 +52,7 @@ process_student() {
     fi
 
     adjust_note
-    echo "$student_name,$student_first_name,$note" >> "$output_csv"
+    echo "'$student_name','$student_first_name',$note" >> "$output_csv"
 }
 
 check_header() {
@@ -169,3 +169,5 @@ check_negative_argument_message() {
 }
 
 lancer_correction "$1"
+message.txt
+4 Ko
