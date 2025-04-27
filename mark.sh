@@ -8,7 +8,6 @@ initialize_csv() {
 }
 
 lancer_correction() {
-    # Utilisation du répertoire courant si aucun argument n'est passé
     local folder="${1:-.}"
 
     if [ ! -d "$folder" ]; then
@@ -41,7 +40,7 @@ process_student() {
         check_make_clean "$student_folder"
     fi
 
-    echo "$student_name/$student_first_name/$note" >> "$output_csv"
+    echo "$student_name,$student_first_name,$note" >> "$output_csv"
 }
 
 check_header() {
@@ -130,6 +129,5 @@ check_negative_argument_message() {
         note=$((note + 4))
     fi
 }
-
 
 lancer_correction "$1"
